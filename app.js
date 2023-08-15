@@ -24,7 +24,7 @@ app.get('/users/:id', (req, res) => {
 });
 
 app.post('/users', (req, res) => {
-    const Nuser = req.body.
+    const Nuser = req.body
     console.log(Nuser);
     res.send("you are amazing!!");
 });
