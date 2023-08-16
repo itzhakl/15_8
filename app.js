@@ -4,14 +4,40 @@ const app = express();
 const port = 3000;
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt');
+const { send } = require('process');
 const saltRounds = 10;
 
+async function hashPassword(password) {
+    try {
+        const saltRounds = 10; // Number of salt rounds for the bcrypt algorithm
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        return hashedPassword;
+    } catch (error) {
+        throw error;
+    }
+}
+
+async function comparePasswords(enteredPassword, hashedPassword) {
+    try {
+        const match = await bcrypt.compare(enteredPassword, hashedPassword);
+        return match;
+    } catch (error) {
+        throw error;
+    }
+}
+
 const users = [
-    { id: uuidv4(), email: 'user1@example.com', password: 'password1' },
-    { id: uuidv4(), email: 'user2@example.com', password: 'password2' },
-    { id: uuidv4(), email: 'user3@example.com', password: 'password3' },
-    { id: uuidv4(), email: 'user4@example.com', password: 'password4' }
+    { id: '1', email: 'user1@example.com', password: 'password1' },
+    { id: '2', email: 'user2@example.com', password: 'password2' },
+    { id: '3', email: 'user3@example.com', password: 'password3' },
+    { id: '4', email: 'user4@example.com', password: 'password4' }
 ];
+
+for (let user of users) {
+    user.id = bcrypt.hash(user.id, saltRounds).then(result => console.log(result));
+};
+
+console.log(users);
 
 app.listen(port, () => {
     console.log(`Server is up and running on port:${port}`);
@@ -33,12 +59,12 @@ app.get('/users/:id', (req, res) => {
 });
 
 
-app.post('/users', (req, res) => {
-    const pass = req.body.password
+app.post('/users', async (req, res) => {
+    const pass = req.body.password;
     users[users.length] = {
         id: uuidv4(),
         email: req.body.email,
-        password: bcrypt.hash(pass, saltRounds)
+        password: await hashPassword(pass)
     }
     console.log(users);
     res.send("sucsess!!");
@@ -46,11 +72,11 @@ app.post('/users', (req, res) => {
 
 app.put('/users/:id', (req, res) => {
     const idParam = +req.params.id;
-    const edit = req.body;
+    const { email, password } = req.body;
     for (let user of users) {
         if (user.id === idParam) {
-            if (req.body.email) user.email = edit.email;
-            if (req.body.password) user.password = edit.password;
+            if (email) user.email = email;
+            if (password) user.password = password;
         }
     }
     res.send('sucsses!')
@@ -70,19 +96,22 @@ app.delete('/users/:id', (req, res) => {
     console.log(users);
 });
 
-app.post('/users/verify', (req, res) => {
+app.post('/users/verify', async (req, res) => {
     const mail = req.body.email;
     const pass = req.body.password;
-    bcrypt.hash(pass, saltRounds (err, hash) => {
-        console.log(bcrypt.hash);
-    });
+    // bcrypt.hash(pass, saltRounds, (err, hash) => {
+    //     console.log(hash);
+    // });
     for (let i = 0; i < users.length; i++) {
         if (users[i].email === mail) {
-            bcrypt.compare(pass, users[i].password, (err, result) => {
-                if (err) throw error;
-                result ? res.send('User connected') : res.send('wrong password')
-            })
+            console.log(users[i]);
+            if (await comparePasswords(pass, users[i].password))
+            // .catch(err => new Error(err));
+            // bcrypt.compare(pass, users[i].password, (err, result) => {
+            //     if (err) throw error;
+            //     result ? res.send('User connected') : res.send('wrong password')
+            // })
         }
     }
-    res.send('mail not found')
-})
+    // res.send('mail not found')
+});
